@@ -368,4 +368,28 @@ FodyWeavers.xsd
 *.msp
 
 # JetBrains Rider
-*.sln.iml 
+*.sln.iml
+
+# Frontend (React)
+TaskManager.Web/node_modules/
+TaskManager.Web/build/
+TaskManager.Web/.env
+TaskManager.Web/.env.local
+TaskManager.Web/.env.development.local
+TaskManager.Web/.env.test.local
+TaskManager.Web/.env.production.local
+TaskManager.Web/npm-debug.log*
+TaskManager.Web/yarn-debug.log*
+TaskManager.Web/yarn-error.log*
+TaskManager.Web/.pnp
+TaskManager.Web/.pnp.js
+TaskManager.Web/coverage/
+TaskManager.Web/.next/
+TaskManager.Web/out/
+TaskManager.Web/.DS_Store
+TaskManager.Web/*.pem
+TaskManager.Web/.vercel
+TaskManager.Web/.idea/
+TaskManager.Web/.vscode/
+TaskManager.Web/*.swp
+TaskManager.Web/*.swo 
