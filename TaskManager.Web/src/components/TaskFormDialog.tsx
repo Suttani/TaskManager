@@ -1,13 +1,10 @@
-
-import { useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Task, CreateTaskDto, TaskStatus } from "@/types/task";
 import { Calendar } from "lucide-react";
-
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +32,13 @@ import {
 } from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import taskService from "@/services/taskService";
+
+const statusOptions = [
+  { value: "Pendente", label: "Pendente" },
+  { value: "EmProgresso", label: "Em Progresso" },
+  { value: "Concluida", label: "Concluída" },
+];
 
 interface TaskFormDialogProps {
   isOpen: boolean;
@@ -71,12 +75,14 @@ export const TaskFormDialog = ({
   });
 
   const handleSubmit = async (values: z.infer<typeof taskFormSchema>) => {
-    const taskData: CreateTaskDto = {
+    console.log("Form values:", values);
+    const taskData = {
       titulo: values.titulo,
-      descricao: values.descricao,
-      status: values.status as TaskStatus,
-      dataConclusao: values.dataConclusao ? format(values.dataConclusao, "yyyy-MM-dd'T'HH:mm:ss") : undefined,
+      descricao: values.descricao || null,
+      status: values.status,
+      dataConclusao: values.dataConclusao ? format(values.dataConclusao, "yyyy-MM-dd'T'HH:mm:ss") : null
     };
+    console.log("Task data to be sent:", taskData);
 
     try {
       await onSubmit(taskData);
@@ -87,15 +93,9 @@ export const TaskFormDialog = ({
     }
   };
 
-  const statusOptions = [
-    { label: "Pendente", value: "Pendente" },
-    { label: "Em Progresso", value: "EmProgresso" },
-    { label: "Concluída", value: "Concluida" },
-  ];
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby="task-form-description">
         <DialogHeader>
           <DialogTitle>
             {editingTask ? "Editar Tarefa" : "Nova Tarefa"}

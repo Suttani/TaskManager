@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Domain.Entities;
+using TaskManager.Domain.Enums;
+using System;
 
 namespace TaskManager.Infrastructure.Data
 {
@@ -20,7 +22,10 @@ namespace TaskManager.Infrastructure.Data
                 entity.Property(e => e.Descricao);
                 entity.Property(e => e.DataCriacao).HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.DataConclusao);
-                entity.Property(e => e.Status).HasConversion<string>();
+                entity.Property(e => e.Status)
+                    .HasColumnType("int")
+                    .HasConversion<int>()
+                    .HasDefaultValue(StatusTarefa.Pendente);
             });
         }
     }

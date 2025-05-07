@@ -130,10 +130,10 @@ export const TaskList = () => {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Todas">Todas</SelectItem>
-              <SelectItem value="Pendente">Pendente</SelectItem>
-              <SelectItem value="EmProgresso">Em Progresso</SelectItem>
-              <SelectItem value="Concluida">Concluída</SelectItem>
+              <SelectItem key="todas" value="Todas">Todas</SelectItem>
+              <SelectItem key="pendente" value="Pendente">Pendente</SelectItem>
+              <SelectItem key="em-progresso" value="EmProgresso">Em Progresso</SelectItem>
+              <SelectItem key="concluida" value="Concluida">Concluída</SelectItem>
             </SelectContent>
           </Select>
           
@@ -152,8 +152,8 @@ export const TaskList = () => {
             className="w-full md:w-auto"
           >
             <TabsList className="grid w-full md:w-auto grid-cols-2">
-              <TabsTrigger value="list">Lista</TabsTrigger>
-              <TabsTrigger value="grid">Grid</TabsTrigger>
+              <TabsTrigger key="list-view" value="list">Lista</TabsTrigger>
+              <TabsTrigger key="grid-view" value="grid">Grid</TabsTrigger>
             </TabsList>
           </Tabs>
           
@@ -179,19 +179,23 @@ export const TaskList = () => {
         </div>
       ) : (
         <div className={viewMode === "grid" ? "grid-view grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "list-view space-y-4"}>
-          {tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onEdit={handleEditTask}
-              onDelete={handleDeleteTask}
-              onStatusChange={handleStatusChange}
-            />
-          ))}
+          {tasks.map((task) => {
+            console.log('Task being rendered:', { id: task.id, titulo: task.titulo });
+            return (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
+                onStatusChange={handleStatusChange}
+              />
+            );
+          })}
         </div>
       )}
       
       <TaskFormDialog
+        key="edit-dialog"
         isOpen={!!taskToEdit}
         onClose={() => setTaskToEdit(null)}
         onSubmit={handleSubmitTask}
@@ -200,6 +204,7 @@ export const TaskList = () => {
       />
       
       <TaskFormDialog
+        key="create-dialog"
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         onSubmit={handleSubmitTask}

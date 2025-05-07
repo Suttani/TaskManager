@@ -1,5 +1,6 @@
 using TaskManager.Domain.Entities;
 using TaskManager.Application.Interfaces;
+using TaskManager.Domain.Enums;
 
 namespace TaskManager.Application.Services
 {
@@ -26,6 +27,12 @@ namespace TaskManager.Application.Services
         {
             if (string.IsNullOrWhiteSpace(tarefa.Titulo))
                 throw new ArgumentException("O título da tarefa é obrigatório.");
+
+            // Garantir que o status está definido
+            if (!Enum.IsDefined(typeof(StatusTarefa), tarefa.Status))
+            {
+                tarefa.Status = StatusTarefa.Pendente;
+            }
 
             return await _repository.CriarAsync(tarefa);
         }

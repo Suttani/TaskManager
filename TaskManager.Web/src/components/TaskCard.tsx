@@ -1,6 +1,5 @@
-
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format, isValid } from "date-fns";
+import { pt } from "date-fns/locale/pt";
 import { Task } from "@/types/task";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +14,16 @@ interface TaskCardProps {
 }
 
 export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Data não definida";
+    const date = new Date(dateString);
+    if (!isValid(date)) return "Data inválida";
+    try {
+      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: pt });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Data inválida";
+    }
   };
 
   const handleStatusChange = (status: Task["status"]) => {

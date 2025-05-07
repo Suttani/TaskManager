@@ -1,7 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Task, TaskFilter, CreateTaskDto, UpdateTaskDto } from "@/types/task";
+import { Task, TaskFilter, CreateTaskDto, UpdateTaskDto, TaskStatus } from "@/types/task";
 import taskService from "@/services/taskService";
 
 export const useTasks = (filter?: TaskFilter) => {
@@ -17,9 +16,10 @@ export const useTasks = (filter?: TaskFilter) => {
     queryKey: ["tasks", filter],
     queryFn: async () => {
       const allTasks = await taskService.getAllTasks();
+      console.log("Raw tasks from API:", allTasks);
       
       // Client-side filtering since the API doesn't support filtering directly
-      return allTasks.filter((task) => {
+      const filteredTasks = allTasks.filter((task) => {
         // Status filter
         if (filter?.status && task.status !== filter.status) {
           return false;
@@ -57,6 +57,9 @@ export const useTasks = (filter?: TaskFilter) => {
         // Sort by creation date (newest first)
         return new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime();
       });
+
+      console.log("Filtered and sorted tasks:", filteredTasks);
+      return filteredTasks;
     },
   });
   
@@ -116,7 +119,7 @@ export const useTasks = (filter?: TaskFilter) => {
   });
   
   const updateTaskStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: Task["status"] }) => 
+    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => 
       taskService.updateTaskStatus(id, status),
     onMutate: async ({ id, status }) => {
       // Cancel any outgoing refetches
