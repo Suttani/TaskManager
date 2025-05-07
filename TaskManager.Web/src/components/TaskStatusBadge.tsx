@@ -1,26 +1,31 @@
-
-import { TaskStatus } from "@/types/task";
+import { Badge } from "@/components/ui/badge";
+import { StatusTarefa } from "@/types/StatusTarefa";
 
 interface TaskStatusBadgeProps {
-  status: TaskStatus;
+  status: StatusTarefa;
 }
 
 export const TaskStatusBadge = ({ status }: TaskStatusBadgeProps) => {
-  const statusClasses = {
-    Pendente: "status-pendente",
-    EmProgresso: "status-emProgresso",
-    Concluida: "status-concluida",
+  const statusConfig = {
+    [StatusTarefa.Pendente]: {
+      className: "bg-task-pending text-task-pending-text",
+      label: "Pendente"
+    },
+    [StatusTarefa.EmProgresso]: {
+      className: "bg-task-in-progress text-task-in-progress-text",
+      label: "Em Progresso"
+    },
+    [StatusTarefa.Concluida]: {
+      className: "bg-task-completed text-task-completed-text",
+      label: "Concluída"
+    }
   };
 
-  const statusLabels = {
-    Pendente: "Pendente",
-    EmProgresso: "Em Progresso",
-    Concluida: "Concluída",
-  };
+  const config = statusConfig[status];
 
   return (
-    <span className={`status-badge ${statusClasses[status]}`}>
-      {statusLabels[status]}
-    </span>
+    <Badge variant="outline" className={config.className}>
+      {config.label}
+    </Badge>
   );
 };

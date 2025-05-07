@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Task, TaskFilter, TaskStatus } from "@/types/task";
+import { Task, TaskFilter } from "@/types/task";
+import { StatusTarefa } from "@/types/StatusTarefa";
 import { useTasks } from "@/hooks/useTasks";
 import { TaskCard } from "@/components/TaskCard";
 import { DeleteTaskDialog } from "@/components/DeleteTaskDialog";
@@ -17,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader } from "lucide-react";
 
 // Expandir o tipo para incluir "Todas" como opção válida para o filtro de UI
-type StatusFilterOption = TaskStatus | "Todas";
+type StatusFilterOption = StatusTarefa | "Todas";
 
 export const TaskList = () => {
   const [filter, setFilter] = useState<TaskFilter>({});
@@ -34,17 +35,15 @@ export const TaskList = () => {
     createTask,
     updateTask,
     deleteTask,
-    updateTaskStatus,
     isCreating,
     isUpdating,
     isDeleting,
-    isStatusUpdating,
   } = useTasks(filter);
 
   const handleFilterChange = (status?: StatusFilterOption) => {
     setFilter((prev) => ({
       ...prev,
-      status: status === "Todas" ? undefined : status as TaskStatus | undefined,
+      status: status === "Todas" ? undefined : status as StatusTarefa | undefined,
     }));
   };
 
@@ -87,17 +86,13 @@ export const TaskList = () => {
 
   const handleSubmitTask = async (taskData: any) => {
     if (taskToEdit) {
-      await updateTask({ id: taskToEdit.id, task: taskData });
+      const { id, ...updateData } = taskData;
+      await updateTask({ id: taskToEdit.id, task: updateData });
       setTaskToEdit(null);
     } else {
       await createTask(taskData);
       setIsCreateDialogOpen(false);
     }
-  };
-
-  // Função para lidar com a alteração de status de tarefas
-  const handleStatusChange = (id: number, status: Task["status"]) => {
-    updateTaskStatus({ id, status });
   };
 
   return (
@@ -123,17 +118,17 @@ export const TaskList = () => {
           </div>
           
           <Select
-            value={(filter.status || "Todas") as StatusFilterOption}
-            onValueChange={handleFilterChange}
+            value={filter.status !== undefined ? filter.status.toString() : "Todas"}
+            onValueChange={(value) => handleFilterChange(value === "Todas" ? "Todas" : Number(value) as StatusTarefa)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem key="todas" value="Todas">Todas</SelectItem>
-              <SelectItem key="pendente" value="Pendente">Pendente</SelectItem>
-              <SelectItem key="em-progresso" value="EmProgresso">Em Progresso</SelectItem>
-              <SelectItem key="concluida" value="Concluida">Concluída</SelectItem>
+              <SelectItem value="Todas">Todas</SelectItem>
+              <SelectItem value={StatusTarefa.Pendente.toString()}>Pendente</SelectItem>
+              <SelectItem value={StatusTarefa.EmProgresso.toString()}>Em Progresso</SelectItem>
+              <SelectItem value={StatusTarefa.Concluida.toString()}>Concluída</SelectItem>
             </SelectContent>
           </Select>
           
@@ -172,25 +167,21 @@ export const TaskList = () => {
       ) : tasks.length === 0 ? (
         <div className="text-center p-8 bg-muted rounded-md">
           <p className="text-muted-foreground">
-            {filter.status || filter.search
+            {filter.status !== undefined || filter.search
               ? "Nenhuma tarefa encontrada com os filtros aplicados."
               : "Não há tarefas cadastradas. Crie sua primeira tarefa!"}
           </p>
         </div>
       ) : (
         <div className={viewMode === "grid" ? "grid-view grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "list-view space-y-4"}>
-          {tasks.map((task) => {
-            console.log('Task being rendered:', { id: task.id, titulo: task.titulo });
-            return (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-                onStatusChange={handleStatusChange}
-              />
-            );
-          })}
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+            />
+          ))}
         </div>
       )}
       

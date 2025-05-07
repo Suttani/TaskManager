@@ -1,4 +1,4 @@
-import { Task, CreateTaskDto, TaskStatus } from "@/types/task";
+import { Task, CreateTaskDto } from "@/types/task";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -33,7 +33,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import taskService from "@/services/taskService";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StatusTarefa } from '@/types/StatusTarefa';
 import { toast } from 'react-hot-toast';
 
@@ -55,7 +55,7 @@ const taskFormSchema = z.object({
   titulo: z.string().min(1, "O título é obrigatório").max(100, "O título deve ter no máximo 100 caracteres"),
   descricao: z.string().optional(),
   dataConclusao: z.date().optional().nullable(),
-  status: z.enum(["Pendente", "EmProgresso", "Concluida"]),
+  status: z.nativeEnum(StatusTarefa),
 });
 
 export const TaskFormDialog = ({
@@ -67,9 +67,9 @@ export const TaskFormDialog = ({
 }: TaskFormDialogProps) => {
   const [titulo, setTitulo] = useState(editingTask?.titulo || '');
   const [descricao, setDescricao] = useState(editingTask?.descricao || '');
-  const [status, setStatus] = useState<StatusTarefa>(editingTask?.status || StatusTarefa.Pendente);
-  const [dataConclusao, setDataConclusao] = useState(
-    editingTask?.dataConclusao ? format(new Date(editingTask.dataConclusao), 'yyyy-MM-dd') : ''
+  const [status, setStatus] = useState<StatusTarefa>(editingTask?.status ?? StatusTarefa.Pendente);
+  const [dataConclusao, setDataConclusao] = useState<string | null>(
+    editingTask?.dataConclusao ? format(new Date(editingTask.dataConclusao), 'yyyy-MM-dd') : null
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -85,6 +85,48 @@ export const TaskFormDialog = ({
     },
   });
 
+  // Reset form when editingTask changes
+  useEffect(() => {
+    if (editingTask) {
+      setTitulo(editingTask.titulo);
+      setDescricao(editingTask.descricao || '');
+      setStatus(editingTask.status);
+      
+      // Só define a data de conclusão se o status for Concluída
+      if (editingTask.status === StatusTarefa.Concluida && editingTask.dataConclusao) {
+        setDataConclusao(format(new Date(editingTask.dataConclusao), 'yyyy-MM-dd'));
+        form.setValue('dataConclusao', new Date(editingTask.dataConclusao));
+      } else {
+        setDataConclusao(null);
+        form.setValue('dataConclusao', null);
+      }
+    } else {
+      // Reset do formulário quando não houver tarefa em edição
+      setTitulo('');
+      setDescricao('');
+      setStatus(StatusTarefa.Pendente);
+      setDataConclusao(null);
+      form.reset({
+        titulo: '',
+        descricao: '',
+        status: StatusTarefa.Pendente,
+        dataConclusao: null
+      });
+    }
+  }, [editingTask, form]);
+
+  const handleStatusChange = (newStatus: StatusTarefa) => {
+    setStatus(newStatus);
+    if (newStatus === StatusTarefa.Concluida && !dataConclusao) {
+      const today = new Date();
+      setDataConclusao(format(today, 'yyyy-MM-dd'));
+      form.setValue('dataConclusao', today);
+    } else if (newStatus !== StatusTarefa.Concluida) {
+      setDataConclusao(null);
+      form.setValue('dataConclusao', null);
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -99,28 +141,35 @@ export const TaskFormDialog = ({
     }
 
     // Validações da data de conclusão
-    if (dataConclusao) {
-      const dataConclusaoObj = new Date(dataConclusao);
-      const dataCriacao = editingTask?.dataCriacao 
-        ? new Date(editingTask.dataCriacao) 
-        : new Date();
+    if (status === StatusTarefa.Concluida) {
+      if (!dataConclusao) {
+        // Se não houver data de conclusão, define como a data atual
+        const today = new Date();
+        setDataConclusao(format(today, 'yyyy-MM-dd'));
+      } else {
+        const dataConclusaoObj = new Date(dataConclusao);
+        dataConclusaoObj.setHours(0, 0, 0, 0);
+        
+        const dataCriacao = editingTask?.dataCriacao 
+          ? new Date(editingTask.dataCriacao) 
+          : new Date();
+        dataCriacao.setHours(0, 0, 0, 0);
 
-      if (dataConclusaoObj < dataCriacao) {
-        newErrors.dataConclusao = 'A data de conclusão não pode ser anterior à data de criação';
+        // Permite que a data de conclusão seja igual à data de criação
+        if (dataConclusaoObj.getTime() < dataCriacao.getTime()) {
+          newErrors.dataConclusao = 'A data de conclusão não pode ser anterior à data de criação';
+        }
+
+        const maxFutureDate = new Date();
+        maxFutureDate.setHours(0, 0, 0, 0);
+        maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 10);
+        if (dataConclusaoObj > maxFutureDate) {
+          newErrors.dataConclusao = 'A data de conclusão não pode ser superior a 10 anos no futuro';
+        }
       }
-
-      const maxFutureDate = new Date();
-      maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 10);
-      if (dataConclusaoObj > maxFutureDate) {
-        newErrors.dataConclusao = 'A data de conclusão não pode ser superior a 10 anos no futuro';
-      }
-    }
-
-    // Validação do status em relação à data de conclusão
-    if (status === StatusTarefa.Concluida && !dataConclusao) {
-      setDataConclusao(format(new Date(), 'yyyy-MM-dd'));
-    } else if (status !== StatusTarefa.Concluida && dataConclusao) {
-      newErrors.status = 'Uma tarefa não concluída não pode ter data de conclusão';
+    } else if (dataConclusao) {
+      setDataConclusao(null);
+      form.setValue('dataConclusao', null);
     }
 
     setErrors(newErrors);
@@ -136,12 +185,12 @@ export const TaskFormDialog = ({
 
     try {
       const taskData = {
+        id: editingTask?.id,
         titulo,
         descricao,
-        status: status as TaskStatus,
+        status,
         dataConclusao: dataConclusao ? new Date(dataConclusao).toISOString() : null
       };
-      console.log("Task data to be sent:", taskData);
 
       await onSubmit(taskData);
       form.reset();
@@ -149,13 +198,6 @@ export const TaskFormDialog = ({
       toast.success(editingTask ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!');
     } catch (error: any) {
       toast.error(error.message || 'Ocorreu um erro ao salvar a tarefa');
-    }
-  };
-
-  const handleStatusChange = (newStatus: StatusTarefa) => {
-    setStatus(newStatus);
-    if (newStatus === StatusTarefa.Concluida && !dataConclusao) {
-      setDataConclusao(format(new Date(), 'yyyy-MM-dd'));
     }
   };
 
@@ -221,20 +263,24 @@ export const TaskFormDialog = ({
                 control={form.control}
                 name="status"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col space-y-2">
                     <FormLabel>Status</FormLabel>
                     <Select
-                      onValueChange={handleStatusChange}
-                      defaultValue={status}
+                      onValueChange={(value) => handleStatusChange(Number(value) as StatusTarefa)}
+                      defaultValue={status.toString()}
+                      value={status.toString()}
                     >
                       <FormControl>
-                        <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
+                        <SelectTrigger className={`h-9 ${errors.status ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Selecione um status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {statusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
+                          <SelectItem 
+                            key={option.value} 
+                            value={option.value.toString()}
+                          >
                             {option.label}
                           </SelectItem>
                         ))}
@@ -245,45 +291,71 @@ export const TaskFormDialog = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="dataConclusao"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Conclusão</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={`w-full text-left font-normal ${
-                              !field.value && "text-muted-foreground"
-                            } ${errors.dataConclusao ? 'border-red-500' : ''}`}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd 'de' MMMM 'de' yyyy", {
-                                locale: ptBR,
-                              })
-                            ) : (
-                              <span>Selecione uma data</span>
-                            )}
-                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value || undefined}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {errors.dataConclusao && <FormMessage>{errors.dataConclusao}</FormMessage>}
-                  </FormItem>
-                )}
-              />
+              {status === StatusTarefa.Concluida && (
+                <FormField
+                  control={form.control}
+                  name="dataConclusao"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col space-y-2">
+                      <FormLabel>Data de Conclusão</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={`h-9 w-full justify-start text-left font-normal ${
+                                !field.value && "text-muted-foreground"
+                              } ${errors.dataConclusao ? 'border-red-500' : ''}`}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd 'de' MMMM 'de' yyyy", {
+                                  locale: ptBR,
+                                })
+                              ) : (
+                                <span>Selecione uma data</span>
+                              )}
+                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              if (date) {
+                                setDataConclusao(format(date, 'yyyy-MM-dd'));
+                              }
+                            }}
+                            initialFocus
+                            disabled={(date) => {
+                              if (!date) return false;
+                              
+                              const selectedDate = new Date(date);
+                              selectedDate.setHours(0, 0, 0, 0);
+                              
+                              const taskCreationDate = editingTask?.dataCriacao 
+                                ? new Date(editingTask.dataCriacao) 
+                                : new Date();
+                              taskCreationDate.setHours(0, 0, 0, 0);
+                              
+                              const maxDate = new Date();
+                              maxDate.setHours(0, 0, 0, 0);
+                              maxDate.setFullYear(maxDate.getFullYear() + 10);
+                              
+                              // Permite que a data de conclusão seja igual à data de criação
+                              return selectedDate.getTime() < taskCreationDate.getTime() || selectedDate > maxDate;
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {errors.dataConclusao && <FormMessage>{errors.dataConclusao}</FormMessage>}
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <DialogFooter>

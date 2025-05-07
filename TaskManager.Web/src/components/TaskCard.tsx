@@ -3,17 +3,16 @@ import { pt } from "date-fns/locale/pt";
 import { Task } from "@/types/task";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Check, Clock, Calendar } from "lucide-react";
+import { Trash2, Clock, Calendar } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface TaskCardProps {
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (id: number) => void;
-  onStatusChange: (id: number, status: Task["status"]) => void;
 }
 
-export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
+export const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Data não definida";
     const date = new Date(dateString);
@@ -23,23 +22,6 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Data inválida";
-    }
-  };
-
-  const handleStatusChange = (status: Task["status"]) => {
-    onStatusChange(task.id, status);
-  };
-
-  const getNextStatus = () => {
-    switch (task.status) {
-      case "Pendente":
-        return "EmProgresso";
-      case "EmProgresso":
-        return "Concluida";
-      case "Concluida":
-        return "Pendente";
-      default:
-        return "Pendente";
     }
   };
 
@@ -79,16 +61,7 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between p-4 pt-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleStatusChange(getNextStatus())}
-        >
-          <Check className="h-4 w-4 mr-1" />
-          Atualizar Status
-        </Button>
-        
+      <CardFooter className="flex justify-end p-4 pt-2">
         <Button
           size="sm"
           variant="ghost"

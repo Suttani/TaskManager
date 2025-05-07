@@ -2,8 +2,8 @@ namespace TaskManager.Domain.Enums
 {
     public enum StatusTarefa
     {
-        Pendente,
-        EmProgresso,
-        Concluida
+        Pendente = 0,
+        EmProgresso = 1,
+        Concluida = 2
     }
 } 

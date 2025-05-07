@@ -1,60 +1,30 @@
 import axios from "axios";
-import { CreateTaskDto, Task, UpdateTaskDto, TaskStatus } from "@/types/task";
+import { CreateTaskDto, Task, UpdateTaskDto } from "@/types/task";
+import { StatusTarefa } from "@/types/StatusTarefa";
 
 const API_URL = "http://localhost:5156/api";
-
-/**
- * Converte o status numérico do backend para o formato do frontend
- */
-const convertStatusToFrontendFormat = (status: number): TaskStatus => {
-  switch (status) {
-    case 0:
-      return "Pendente";
-    case 1:
-      return "EmProgresso";
-    case 2:
-      return "Concluida";
-    default:
-      return "Pendente";
-  }
-};
-
-/**
- * Converte o status do frontend para o formato numérico do backend
- */
-const convertStatusToBackendFormat = (status: TaskStatus): number => {
-  switch (status) {
-    case "Pendente":
-      return 0;
-    case "EmProgresso":
-      return 1;
-    case "Concluida":
-      return 2;
-    default:
-      return 0;
-  }
-};
 
 /**
  * Converte os dados do backend para o formato do frontend
  */
 const convertToFrontendFormat = (data: any): Task => ({
-  id: data.Id,
-  titulo: data.Titulo,
-  descricao: data.Descricao,
-  dataCriacao: data.DataCriacao,
-  dataConclusao: data.DataConclusao,
-  status: convertStatusToFrontendFormat(data.Status)
+  id: data.id,
+  titulo: data.titulo,
+  descricao: data.descricao,
+  dataCriacao: data.dataCriacao,
+  dataConclusao: data.dataConclusao,
+  status: data.status as StatusTarefa
 });
 
 /**
  * Converte os dados do frontend para o formato do backend
  */
 const convertToBackendFormat = (data: any) => ({
+  id: data.id,
   titulo: data.titulo,
   descricao: data.descricao || null,
   dataConclusao: data.dataConclusao || null,
-  status: convertStatusToBackendFormat(data.status)
+  status: data.status
 });
 
 const taskService = {
@@ -113,7 +83,7 @@ const taskService = {
     }
   },
 
-  updateTaskStatus: async (id: number, status: TaskStatus): Promise<Task> => {
+  updateTaskStatus: async (id: number, status: StatusTarefa): Promise<Task> => {
     try {
       const currentTask = await taskService.getTaskById(id);
       const data = {
@@ -121,7 +91,7 @@ const taskService = {
         titulo: currentTask.titulo,
         descricao: currentTask.descricao,
         dataConclusao: currentTask.dataConclusao,
-        status: convertStatusToBackendFormat(status)
+        status
       };
 
       const response = await axios.put(`${API_URL}/tarefas/${id}`, data, {

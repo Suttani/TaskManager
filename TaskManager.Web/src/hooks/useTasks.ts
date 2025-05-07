@@ -1,67 +1,41 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Task, TaskFilter, CreateTaskDto, UpdateTaskDto, TaskStatus } from "@/types/task";
+import { Task, TaskFilter, CreateTaskDto, UpdateTaskDto } from "@/types/task";
+import { StatusTarefa } from "@/types/StatusTarefa";
 import taskService from "@/services/taskService";
+import { useMemo } from "react";
 
 export const useTasks = (filter?: TaskFilter) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  const {
-    data: tasks = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["tasks", filter],
-    queryFn: async () => {
-      const allTasks = await taskService.getAllTasks();
-      console.log("Raw tasks from API:", allTasks);
-      
-      // Client-side filtering since the API doesn't support filtering directly
-      const filteredTasks = allTasks.filter((task) => {
-        // Status filter
-        if (filter?.status && task.status !== filter.status) {
-          return false;
-        }
-        
-        // Search filter (case insensitive)
-        if (
-          filter?.search &&
-          !task.titulo.toLowerCase().includes(filter.search.toLowerCase())
-        ) {
-          return false;
-        }
-        
-        // Date range filter
-        if (filter?.dateRange) {
-          const taskDate = new Date(task.dataCriacao);
-          
-          if (
-            filter.dateRange.start &&
-            taskDate < filter.dateRange.start
-          ) {
-            return false;
-          }
-          
-          if (
-            filter.dateRange.end &&
-            taskDate > filter.dateRange.end
-          ) {
-            return false;
-          }
-        }
-        
-        return true;
-      }).sort((a, b) => {
-        // Sort by creation date (newest first)
-        return new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime();
-      });
-
-      console.log("Filtered and sorted tasks:", filteredTasks);
-      return filteredTasks;
-    },
+  const { data: allTasks = [], error, isLoading } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: taskService.getAllTasks,
   });
+
+  // Filtragem e ordenação das tarefas
+  const filteredTasks = useMemo(() => {
+    let tasks = [...allTasks];
+  
+    if (filter?.status !== undefined) {
+      tasks = tasks.filter(task => task.status === filter.status);
+    }
+  
+    if (filter?.search) {
+      const searchLower = filter.search.toLowerCase();
+      tasks = tasks.filter(task =>
+        task.titulo.toLowerCase().includes(searchLower) ||
+        (task.descricao && task.descricao.toLowerCase().includes(searchLower))
+      );
+    }
+  
+    return tasks.sort((a, b) => {
+      if (a.status === StatusTarefa.Concluida && b.status !== StatusTarefa.Concluida) return 1;
+      if (a.status !== StatusTarefa.Concluida && b.status === StatusTarefa.Concluida) return -1;
+      return new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime();
+    });
+  }, [allTasks, filter?.status, filter?.search]);
   
   const createTaskMutation = useMutation({
     mutationFn: (newTask: CreateTaskDto) => taskService.createTask(newTask),
@@ -119,7 +93,7 @@ export const useTasks = (filter?: TaskFilter) => {
   });
   
   const updateTaskStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => 
+    mutationFn: ({ id, status }: { id: number; status: StatusTarefa }) => 
       taskService.updateTaskStatus(id, status),
     onMutate: async ({ id, status }) => {
       // Cancel any outgoing refetches
@@ -158,10 +132,10 @@ export const useTasks = (filter?: TaskFilter) => {
   });
   
   return {
-    tasks,
+    tasks: filteredTasks,
     isLoading,
-    isError,
     error,
+    isError: !!error,
     createTask: createTaskMutation.mutateAsync,
     updateTask: updateTaskMutation.mutateAsync,
     deleteTask: deleteTaskMutation.mutateAsync,

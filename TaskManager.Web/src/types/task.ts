@@ -1,4 +1,4 @@
-export type TaskStatus = "Pendente" | "EmProgresso" | "Concluida";
+import { StatusTarefa } from './StatusTarefa';
 
 export interface Task {
   id: number;
@@ -6,25 +6,20 @@ export interface Task {
   descricao?: string;
   dataCriacao: string;
   dataConclusao?: string;
-  status: TaskStatus;
+  status: StatusTarefa;
 }
 
 export interface CreateTaskDto {
   titulo: string;
   descricao?: string;
-  dataConclusao?: string;
-  status: TaskStatus;
+  dataConclusao?: string | null;
+  status: StatusTarefa;
 }
 
-export interface UpdateTaskDto {
-  titulo?: string;
-  descricao?: string;
-  dataConclusao?: string;
-  status?: TaskStatus;
-}
+export interface UpdateTaskDto extends CreateTaskDto {}
 
 export interface TaskFilter {
-  status?: TaskStatus;
+  status?: StatusTarefa;
   search?: string;
   dateRange?: {
     start?: Date;

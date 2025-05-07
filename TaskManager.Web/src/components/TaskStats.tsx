@@ -1,8 +1,8 @@
-
 import { useTasks } from "@/hooks/useTasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader } from "lucide-react";
+import { StatusTarefa } from "@/types/StatusTarefa";
 
 export const TaskStats = () => {
   const { tasks, isLoading } = useTasks();
@@ -16,9 +16,9 @@ export const TaskStats = () => {
   }
 
   const totalTasks = tasks.length;
-  const pendingTasks = tasks.filter((task) => task.status === "Pendente").length;
-  const inProgressTasks = tasks.filter((task) => task.status === "EmProgresso").length;
-  const completedTasks = tasks.filter((task) => task.status === "Concluida").length;
+  const pendingTasks = tasks.filter((task) => task.status === StatusTarefa.Pendente).length;
+  const inProgressTasks = tasks.filter((task) => task.status === StatusTarefa.EmProgresso).length;
+  const completedTasks = tasks.filter((task) => task.status === StatusTarefa.Concluida).length;
 
   const completionPercentage = totalTasks > 0
     ? Math.round((completedTasks / totalTasks) * 100)

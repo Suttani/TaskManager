@@ -11,7 +11,7 @@ using TaskManager.Infrastructure.Data;
 
 namespace TaskManager.Infrastructure.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250507155948_AlterStatusToInt")]
     partial class AlterStatusToInt
     {

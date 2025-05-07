@@ -7,9 +7,9 @@ namespace TaskManager.Infrastructure.Repositories
 {
     public class TarefaRepository : ITarefaRepository
     {
-        private readonly AppDbContext _context;
+        private readonly ApplicationDbContext _context;
 
-        public TarefaRepository(AppDbContext context)
+        public TarefaRepository(ApplicationDbContext context)
         {
             _context = context;
         }
