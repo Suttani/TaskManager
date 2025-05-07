@@ -34,13 +34,13 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import taskService from "@/services/taskService";
 import { useState } from 'react';
-import { StatusTarefa } from '../types/StatusTarefa';
+import { StatusTarefa } from '@/types/StatusTarefa';
 import { toast } from 'react-hot-toast';
 
 const statusOptions = [
-  { value: "Pendente", label: "Pendente" },
-  { value: "EmProgresso", label: "Em Progresso" },
-  { value: "Concluida", label: "Concluída" },
+  { value: StatusTarefa.Pendente, label: "Pendente" },
+  { value: StatusTarefa.EmProgresso, label: "Em Progresso" },
+  { value: StatusTarefa.Concluida, label: "Concluída" },
 ];
 
 interface TaskFormDialogProps {
@@ -63,7 +63,7 @@ export const TaskFormDialog = ({
   onClose,
   onSubmit,
   editingTask,
-  isSubmitting,
+  isSubmitting: isSubmittingProp,
 }: TaskFormDialogProps) => {
   const [titulo, setTitulo] = useState(editingTask?.titulo || '');
   const [descricao, setDescricao] = useState(editingTask?.descricao || '');
@@ -71,7 +71,6 @@ export const TaskFormDialog = ({
   const [dataConclusao, setDataConclusao] = useState(
     editingTask?.dataConclusao ? format(new Date(editingTask.dataConclusao), 'yyyy-MM-dd') : ''
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const form = useForm<z.infer<typeof taskFormSchema>>({
@@ -79,7 +78,7 @@ export const TaskFormDialog = ({
     defaultValues: {
       titulo: editingTask?.titulo || "",
       descricao: editingTask?.descricao || "",
-      status: editingTask?.status || "Pendente",
+      status: editingTask?.status || StatusTarefa.Pendente,
       dataConclusao: editingTask?.dataConclusao 
         ? new Date(editingTask.dataConclusao)
         : null,
@@ -135,7 +134,6 @@ export const TaskFormDialog = ({
       return;
     }
 
-    setIsSubmitting(true);
     try {
       const taskData = {
         titulo,
@@ -151,8 +149,6 @@ export const TaskFormDialog = ({
       toast.success(editingTask ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!');
     } catch (error: any) {
       toast.error(error.message || 'Ocorreu um erro ao salvar a tarefa');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -206,14 +202,13 @@ export const TaskFormDialog = ({
                   <FormControl>
                     <Textarea
                       placeholder="Digite a descrição da tarefa"
-                      className="resize-none h-24"
                       {...field}
                       value={descricao}
                       onChange={(e) => {
                         field.onChange(e.target.value);
                         setDescricao(e.target.value);
                       }}
-                      className={errors.descricao ? 'border-red-500' : ''}
+                      className={`resize-none h-24 ${errors.descricao ? 'border-red-500' : ''}`}
                     />
                   </FormControl>
                   {errors.descricao && <FormMessage>{errors.descricao}</FormMessage>}
@@ -263,7 +258,7 @@ export const TaskFormDialog = ({
                             variant={"outline"}
                             className={`w-full text-left font-normal ${
                               !field.value && "text-muted-foreground"
-                            }`}
+                            } ${errors.dataConclusao ? 'border-red-500' : ''}`}
                           >
                             {field.value ? (
                               format(field.value, "dd 'de' MMMM 'de' yyyy", {
@@ -296,12 +291,12 @@ export const TaskFormDialog = ({
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                disabled={isSubmitting}
+                disabled={isSubmittingProp}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
+              <Button type="submit" disabled={isSubmittingProp}>
+                {isSubmittingProp
                   ? "Salvando..."
                   : editingTask
                   ? "Atualizar"
