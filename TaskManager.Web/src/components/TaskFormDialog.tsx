@@ -33,6 +33,9 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import taskService from "@/services/taskService";
+import { useState } from 'react';
+import { StatusTarefa } from '../types/StatusTarefa';
+import { toast } from 'react-hot-toast';
 
 const statusOptions = [
   { value: "Pendente", label: "Pendente" },
@@ -62,6 +65,15 @@ export const TaskFormDialog = ({
   editingTask,
   isSubmitting,
 }: TaskFormDialogProps) => {
+  const [titulo, setTitulo] = useState(editingTask?.titulo || '');
+  const [descricao, setDescricao] = useState(editingTask?.descricao || '');
+  const [status, setStatus] = useState<StatusTarefa>(editingTask?.status || StatusTarefa.Pendente);
+  const [dataConclusao, setDataConclusao] = useState(
+    editingTask?.dataConclusao ? format(new Date(editingTask.dataConclusao), 'yyyy-MM-dd') : ''
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const form = useForm<z.infer<typeof taskFormSchema>>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -74,22 +86,80 @@ export const TaskFormDialog = ({
     },
   });
 
-  const handleSubmit = async (values: z.infer<typeof taskFormSchema>) => {
-    console.log("Form values:", values);
-    const taskData = {
-      titulo: values.titulo,
-      descricao: values.descricao || null,
-      status: values.status,
-      dataConclusao: values.dataConclusao ? format(values.dataConclusao, "yyyy-MM-dd'T'HH:mm:ss") : null
-    };
-    console.log("Task data to be sent:", taskData);
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
+    if (!titulo.trim()) {
+      newErrors.titulo = 'O título é obrigatório';
+    }
+    if (titulo.length > 100) {
+      newErrors.titulo = 'O título deve ter no máximo 100 caracteres';
+    }
+    if (descricao && descricao.length > 500) {
+      newErrors.descricao = 'A descrição deve ter no máximo 500 caracteres';
+    }
+
+    // Validações da data de conclusão
+    if (dataConclusao) {
+      const dataConclusaoObj = new Date(dataConclusao);
+      const dataCriacao = editingTask?.dataCriacao 
+        ? new Date(editingTask.dataCriacao) 
+        : new Date();
+
+      if (dataConclusaoObj < dataCriacao) {
+        newErrors.dataConclusao = 'A data de conclusão não pode ser anterior à data de criação';
+      }
+
+      const maxFutureDate = new Date();
+      maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 10);
+      if (dataConclusaoObj > maxFutureDate) {
+        newErrors.dataConclusao = 'A data de conclusão não pode ser superior a 10 anos no futuro';
+      }
+    }
+
+    // Validação do status em relação à data de conclusão
+    if (status === StatusTarefa.Concluida && !dataConclusao) {
+      setDataConclusao(format(new Date(), 'yyyy-MM-dd'));
+    } else if (status !== StatusTarefa.Concluida && dataConclusao) {
+      newErrors.status = 'Uma tarefa não concluída não pode ter data de conclusão';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      const taskData = {
+        titulo,
+        descricao,
+        status: status as TaskStatus,
+        dataConclusao: dataConclusao ? new Date(dataConclusao).toISOString() : null
+      };
+      console.log("Task data to be sent:", taskData);
+
       await onSubmit(taskData);
       form.reset();
       onClose();
-    } catch (error) {
-      console.error("Error submitting task:", error);
+      toast.success(editingTask ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!');
+    } catch (error: any) {
+      toast.error(error.message || 'Ocorreu um erro ao salvar a tarefa');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = (newStatus: StatusTarefa) => {
+    setStatus(newStatus);
+    if (newStatus === StatusTarefa.Concluida && !dataConclusao) {
+      setDataConclusao(format(new Date(), 'yyyy-MM-dd'));
     }
   };
 
@@ -103,7 +173,7 @@ export const TaskFormDialog = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <FormField
               control={form.control}
               name="titulo"
@@ -111,9 +181,18 @@ export const TaskFormDialog = ({
                 <FormItem>
                   <FormLabel>Título</FormLabel>
                   <FormControl>
-                    <Input placeholder="Digite o título da tarefa" {...field} />
+                    <Input
+                      placeholder="Digite o título da tarefa"
+                      {...field}
+                      value={titulo}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        setTitulo(e.target.value);
+                      }}
+                      className={errors.titulo ? 'border-red-500' : ''}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  {errors.titulo && <FormMessage>{errors.titulo}</FormMessage>}
                 </FormItem>
               )}
             />
@@ -129,9 +208,15 @@ export const TaskFormDialog = ({
                       placeholder="Digite a descrição da tarefa"
                       className="resize-none h-24"
                       {...field}
+                      value={descricao}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        setDescricao(e.target.value);
+                      }}
+                      className={errors.descricao ? 'border-red-500' : ''}
                     />
                   </FormControl>
-                  <FormMessage />
+                  {errors.descricao && <FormMessage>{errors.descricao}</FormMessage>}
                 </FormItem>
               )}
             />
@@ -144,11 +229,11 @@ export const TaskFormDialog = ({
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      onValueChange={handleStatusChange}
+                      defaultValue={status}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
                           <SelectValue placeholder="Selecione um status" />
                         </SelectTrigger>
                       </FormControl>
@@ -160,7 +245,7 @@ export const TaskFormDialog = ({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    {errors.status && <FormMessage>{errors.status}</FormMessage>}
                   </FormItem>
                 )}
               />
@@ -200,7 +285,7 @@ export const TaskFormDialog = ({
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    {errors.dataConclusao && <FormMessage>{errors.dataConclusao}</FormMessage>}
                   </FormItem>
                 )}
               />
