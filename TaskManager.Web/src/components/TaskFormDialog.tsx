@@ -156,13 +156,13 @@ export const TaskFormDialog = ({
         dataCriacao.setHours(0, 0, 0, 0);
 
         // Permite que a data de conclusão seja igual à data de criação
-        if (dataConclusaoObj.getTime() < dataCriacao.getTime()) {
+        if (dataConclusaoObj < dataCriacao) {
           newErrors.dataConclusao = 'A data de conclusão não pode ser anterior à data de criação';
         }
 
         const maxFutureDate = new Date();
-        maxFutureDate.setHours(0, 0, 0, 0);
         maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 10);
+        maxFutureDate.setHours(0, 0, 0, 0);
         if (dataConclusaoObj > maxFutureDate) {
           newErrors.dataConclusao = 'A data de conclusão não pode ser superior a 10 anos no futuro';
         }
@@ -342,11 +342,11 @@ export const TaskFormDialog = ({
                               taskCreationDate.setHours(0, 0, 0, 0);
                               
                               const maxDate = new Date();
-                              maxDate.setHours(0, 0, 0, 0);
                               maxDate.setFullYear(maxDate.getFullYear() + 10);
+                              maxDate.setHours(0, 0, 0, 0);
                               
                               // Permite que a data de conclusão seja igual à data de criação
-                              return selectedDate.getTime() < taskCreationDate.getTime() || selectedDate > maxDate;
+                              return selectedDate < taskCreationDate || selectedDate > maxDate;
                             }}
                           />
                         </PopoverContent>

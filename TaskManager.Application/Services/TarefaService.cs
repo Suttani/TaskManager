@@ -71,10 +71,13 @@ namespace TaskManager.Application.Services
             // Validação da data de conclusão
             if (tarefa.DataConclusao.HasValue)
             {
-                if (tarefa.DataConclusao.Value < tarefa.DataCriacao)
+                var dataConclusao = tarefa.DataConclusao.Value.Date;
+                var dataCriacao = tarefa.DataCriacao.Date;
+
+                if (dataConclusao < dataCriacao)
                     throw new ValidationException("A data de conclusão não pode ser anterior à data de criação.");
 
-                if (tarefa.DataConclusao.Value > DateTime.Now.AddYears(10))
+                if (dataConclusao > DateTime.Now.AddYears(10).Date)
                     throw new ValidationException("A data de conclusão não pode ser superior a 10 anos no futuro.");
             }
 

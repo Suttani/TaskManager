@@ -132,7 +132,7 @@ export const TaskList = () => {
             </SelectContent>
           </Select>
           
-          {(filter.status || filter.search) && (
+          {(filter.status !== undefined || filter.search) && (
             <Button variant="outline" size="sm" onClick={handleClearFilters}>
               Limpar Filtros
             </Button>
