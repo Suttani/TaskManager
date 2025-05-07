@@ -1,31 +1,46 @@
-using TaskManager.Application.Interfaces;
 using TaskManager.Domain.Entities;
-using TaskManager.Infrastructure.Interfaces;
+using TaskManager.Application.Interfaces;
 
 namespace TaskManager.Application.Services
 {
     public class TarefaService : ITarefaService
     {
-        private readonly ITarefaRepository _repo;
+        private readonly ITarefaRepository _repository;
 
-        public TarefaService(ITarefaRepository repo)
+        public TarefaService(ITarefaRepository repository)
         {
-            _repo = repo;
+            _repository = repository;
         }
 
-        public Task<IEnumerable<Tarefa>> ObterTodasAsync() => _repo.ObterTodasAsync();
-
-        public Task<Tarefa?> ObterPorIdAsync(int id) => _repo.ObterPorIdAsync(id);
-
-        public Task<Tarefa> CriarAsync(Tarefa tarefa)
+        public async Task<IEnumerable<Tarefa>> ObterTodasAsync()
         {
-            if (tarefa.DataConclusao.HasValue && tarefa.DataConclusao < tarefa.DataCriacao)
-                throw new ArgumentException("Data de conclusão não pode ser anterior à data de criação.");
-            return _repo.CriarAsync(tarefa);
+            return await _repository.ObterTodasAsync();
         }
 
-        public Task<bool> AtualizarAsync(Tarefa tarefa) => _repo.AtualizarAsync(tarefa);
+        public async Task<Tarefa?> ObterPorIdAsync(int id)
+        {
+            return await _repository.ObterPorIdAsync(id);
+        }
 
-        public Task<bool> DeletarAsync(int id) => _repo.DeletarAsync(id);
+        public async Task<Tarefa> CriarAsync(Tarefa tarefa)
+        {
+            if (string.IsNullOrWhiteSpace(tarefa.Titulo))
+                throw new ArgumentException("O título da tarefa é obrigatório.");
+
+            return await _repository.CriarAsync(tarefa);
+        }
+
+        public async Task<bool> AtualizarAsync(Tarefa tarefa)
+        {
+            if (string.IsNullOrWhiteSpace(tarefa.Titulo))
+                throw new ArgumentException("O título da tarefa é obrigatório.");
+
+            return await _repository.AtualizarAsync(tarefa);
+        }
+
+        public async Task<bool> DeletarAsync(int id)
+        {
+            return await _repository.DeletarAsync(id);
+        }
     }
 } 

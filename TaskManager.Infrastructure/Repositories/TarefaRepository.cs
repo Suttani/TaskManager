@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Domain.Entities;
+using TaskManager.Application.Interfaces;
 using TaskManager.Infrastructure.Data;
-using TaskManager.Infrastructure.Interfaces;
 
 namespace TaskManager.Infrastructure.Repositories
 {
@@ -14,9 +14,15 @@ namespace TaskManager.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Tarefa>> ObterTodasAsync() => await _context.Tarefas.ToListAsync();
+        public async Task<IEnumerable<Tarefa>> ObterTodasAsync()
+        {
+            return await _context.Tarefas.ToListAsync();
+        }
 
-        public async Task<Tarefa?> ObterPorIdAsync(int id) => await _context.Tarefas.FindAsync(id);
+        public async Task<Tarefa?> ObterPorIdAsync(int id)
+        {
+            return await _context.Tarefas.FindAsync(id);
+        }
 
         public async Task<Tarefa> CriarAsync(Tarefa tarefa)
         {
@@ -27,16 +33,24 @@ namespace TaskManager.Infrastructure.Repositories
 
         public async Task<bool> AtualizarAsync(Tarefa tarefa)
         {
-            _context.Tarefas.Update(tarefa);
-            return await _context.SaveChangesAsync() > 0;
+            var tarefaExistente = await _context.Tarefas.FindAsync(tarefa.Id);
+            if (tarefaExistente == null)
+                return false;
+
+            _context.Entry(tarefaExistente).CurrentValues.SetValues(tarefa);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> DeletarAsync(int id)
         {
             var tarefa = await _context.Tarefas.FindAsync(id);
-            if (tarefa == null) return false;
+            if (tarefa == null)
+                return false;
+
             _context.Tarefas.Remove(tarefa);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 } 
